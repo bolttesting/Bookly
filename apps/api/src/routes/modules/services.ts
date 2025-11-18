@@ -11,33 +11,40 @@ const servicesRouter = Router();
 
 const capacityEnum = z.enum(SERVICE_CAPACITY_TYPE_VALUES);
 
-const serviceSchema = z
-  .object({
-    name: z.string().min(1),
-    description: z.string().optional(),
-    durationMinutes: z.number().min(5).max(480),
-    price: z.number().nonnegative(),
-    color: z.string().optional(),
-    bufferBeforeMinutes: z.number().min(0).max(240).default(0),
-    bufferAfterMinutes: z.number().min(0).max(240).default(0),
-    isActive: z.boolean().default(true),
-    capacityType: capacityEnum.default('SINGLE'),
-    maxClientsPerSlot: z.number().int().min(1).max(50).default(1),
-    allowAnyStaff: z.boolean().default(true),
-    staffIds: z.array(z.string().cuid()).optional(),
-  })
-  .refine(
-    (schema) => {
-      if (schema.capacityType === 'SINGLE') {
-        return schema.maxClientsPerSlot === 1;
-      }
-      return schema.maxClientsPerSlot >= 1;
-    },
-    {
+const serviceBaseSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  durationMinutes: z.number().min(5).max(480),
+  price: z.number().nonnegative(),
+  color: z.string().optional(),
+  bufferBeforeMinutes: z.number().min(0).max(240).default(0),
+  bufferAfterMinutes: z.number().min(0).max(240).default(0),
+  isActive: z.boolean().default(true),
+  capacityType: capacityEnum.default('SINGLE'),
+  maxClientsPerSlot: z.number().int().min(1).max(50).default(1),
+  allowAnyStaff: z.boolean().default(true),
+  staffIds: z.array(z.string().cuid()).optional(),
+});
+
+const serviceSchema = serviceBaseSchema.superRefine((schema, ctx) => {
+  if (schema.capacityType === 'SINGLE' && schema.maxClientsPerSlot !== 1) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
       message: 'Single-capacity services must have maxClientsPerSlot set to 1.',
       path: ['maxClientsPerSlot'],
-    },
-  );
+    });
+  }
+});
+
+const serviceUpdateSchema = serviceBaseSchema.partial().superRefine((schema, ctx) => {
+  if (schema.capacityType === 'SINGLE' && schema.maxClientsPerSlot !== undefined && schema.maxClientsPerSlot !== 1) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Single-capacity services must have maxClientsPerSlot set to 1.',
+      path: ['maxClientsPerSlot'],
+    });
+  }
+});
 
 servicesRouter.use(requirePermission(PERMISSIONS.MANAGE_SERVICES));
 
@@ -57,9 +64,9 @@ const serviceInclude = {
         },
       },
     },
-    orderBy: { displayOrder: 'asc' },
+    orderBy: { displayOrder: 'asc' as const },
   },
-};
+} satisfies Prisma.ServiceInclude;
 
 servicesRouter.get('/', async (req, res, next) => {
   try {
@@ -67,8 +74,9 @@ servicesRouter.get('/', async (req, res, next) => {
       return res.status(400).json({ message: 'Missing business context' });
     }
 
+    const businessId = req.user.businessId;
     const services = await prisma.service.findMany({
-      where: { businessId: req.user.businessId },
+      where: { businessId },
       orderBy: { createdAt: 'desc' },
       include: serviceInclude,
     });
@@ -85,6 +93,7 @@ servicesRouter.post('/', async (req, res, next) => {
       return res.status(400).json({ message: 'Missing business context' });
     }
 
+    const businessId = req.user.businessId;
     const payload = serviceSchema.parse(req.body);
     const { staffIds, ...serviceData } = payload;
 
@@ -92,7 +101,7 @@ servicesRouter.post('/', async (req, res, next) => {
       data: {
         ...serviceData,
         price: new Prisma.Decimal(serviceData.price),
-        businessId: req.user.businessId,
+        businessId,
       },
     });
 
@@ -108,7 +117,7 @@ servicesRouter.post('/', async (req, res, next) => {
       if (validStaff.length) {
         await prisma.serviceStaff.createMany({
           data: validStaff.map((staff, index) => ({
-            businessId: req.user.businessId!,
+            businessId,
             serviceId: service.id,
             staffId: staff.id,
             displayOrder: index,
@@ -136,12 +145,13 @@ servicesRouter.put('/:serviceId', async (req, res, next) => {
       return res.status(400).json({ message: 'Missing business context' });
     }
 
-    const payload = serviceSchema.partial().parse(req.body);
+    const businessId = req.user.businessId;
+    const payload = serviceUpdateSchema.parse(req.body);
     const { staffIds, ...serviceData } = payload;
     const { serviceId } = req.params;
 
     const existing = await prisma.service.findUnique({ where: { id: serviceId } });
-    if (!existing || existing.businessId !== req.user.businessId) {
+    if (!existing || existing.businessId !== businessId) {
       return res.status(404).json({ message: 'Service not found' });
     }
 
@@ -157,7 +167,7 @@ servicesRouter.put('/:serviceId', async (req, res, next) => {
       const validStaff = await prisma.staffMember.findMany({
         where: {
           id: { in: staffIds },
-          businessId: req.user.businessId,
+          businessId,
         },
         select: { id: true },
       });
@@ -180,7 +190,7 @@ servicesRouter.put('/:serviceId', async (req, res, next) => {
       const newAssignments = staffIds
         .filter((id) => validIds.has(id) && !existingIds.has(id))
         .map((id, index) => ({
-          businessId: req.user.businessId!,
+          businessId,
           serviceId,
           staffId: id,
           displayOrder: index,

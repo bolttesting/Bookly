@@ -12,13 +12,13 @@ const staffRouter = Router();
 const staffInclude = {
   availability: {
     orderBy: [
-      { date: 'asc' },
-      { dayOfWeek: 'asc' },
-      { startTime: 'asc' },
+      { date: 'asc' as const },
+      { dayOfWeek: 'asc' as const },
+      { startTime: 'asc' as const },
     ],
   },
   serviceAssignments: {
-    orderBy: { displayOrder: 'asc' },
+    orderBy: { displayOrder: 'asc' as const },
     select: {
       id: true,
       serviceId: true,
@@ -35,7 +35,7 @@ const staffInclude = {
       },
     },
   },
-};
+} satisfies Prisma.StaffMemberInclude;
 
 const permissionValues = Object.values(PERMISSIONS);
 

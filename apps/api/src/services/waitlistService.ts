@@ -59,7 +59,6 @@ export const promoteNextWaitlistEntry = async ({
     where: { id: nextEntry.id },
     data: {
       status: 'PROMOTED',
-      promotedAt: new Date(),
     },
   });
 

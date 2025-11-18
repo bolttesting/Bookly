@@ -257,7 +257,7 @@ export async function createSubscription(
 
   return {
     subscriptionId: subscription.id,
-    clientSecret: paymentIntent?.client_secret,
+    clientSecret: paymentIntent?.client_secret ?? undefined,
   };
 }
 

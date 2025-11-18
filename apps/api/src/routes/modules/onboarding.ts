@@ -68,17 +68,22 @@ onboardingRouter.post('/step', async (req, res, next) => {
       return res.status(404).json({ message: 'Business not found' });
     }
 
-    const nextContext =
+    type OnboardingContext = Record<string, unknown> & {
+      step?: number;
+      industry?: string;
+    };
+
+    const nextContext: OnboardingContext =
       typeof business.onboardingContext === 'object' && business.onboardingContext !== null
-        ? { ...business.onboardingContext }
+        ? { ...(business.onboardingContext as Record<string, unknown>) }
         : {};
 
-    nextContext[`step${payload.step}`] = payload.data;
+    (nextContext as Record<string, unknown>)[`step${payload.step}`] = payload.data;
     nextContext.step = payload.step;
 
     const updates: Prisma.BusinessUpdateInput = {
       onboardingState: payload.complete ? 'COMPLETED' : 'IN_PROGRESS',
-      onboardingContext: nextContext,
+      onboardingContext: nextContext as Prisma.InputJsonValue,
     };
 
     if (payload.step === 1 && payload.data) {

@@ -1,13 +1,16 @@
+import type { Prisma } from '@prisma/client';
 import type { Request } from 'express';
 
 import { prisma } from '../config/prisma.js';
 import type { AuditActionValue } from '../constants/enums.js';
 
+type AuditMetadata = Prisma.InputJsonValue;
+
 type AuditLogInput = {
   action: AuditActionValue;
   userId?: string;
   businessId?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: AuditMetadata;
 };
 
 export const recordAuditLog = async ({
@@ -26,16 +29,12 @@ export const recordAuditLog = async ({
   });
 };
 
-export const recordAuditFromRequest = async (
-  req: Request,
-  action: AuditActionValue,
-  metadata?: Record<string, unknown>,
-) => {
+export const recordAuditFromRequest = async (req: Request, action: AuditActionValue, metadata?: Record<string, unknown>) => {
   await recordAuditLog({
     action,
     userId: req.user?.id,
     businessId: req.user?.businessId,
-    metadata,
+    metadata: metadata as AuditMetadata | undefined,
   });
 };
 

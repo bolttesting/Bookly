@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 
+import { prisma } from '../../config/prisma.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 import { requirePermission } from '../../middleware/requirePermission.js';
 import {
@@ -55,8 +56,7 @@ testDriveRouter.post('/', async (req, res, next) => {
 
     // If completing, optionally save feedback
     if (payload.feedback) {
-      const db = prisma as any;
-      await db.testDriveFeedback.create({
+      await prisma.testDriveFeedback.create({
         data: {
           businessId,
           feedback: payload.feedback,

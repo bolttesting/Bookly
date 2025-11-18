@@ -7,10 +7,7 @@ export const initSentry = (app: Express) => {
     return; // Sentry disabled if no DSN
   }
 
-  const integrations = [
-    Sentry.httpIntegration({ tracing: true }),
-    Sentry.expressIntegration({ app }),
-  ];
+  const integrations = [Sentry.httpIntegration(), Sentry.expressIntegration()];
 
   // Add profiling integration if available
   try {

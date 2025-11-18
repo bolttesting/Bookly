@@ -134,8 +134,8 @@ export const ensureServiceCapacityAvailable = async ({
 
 type StaffCandidate = {
   id: string;
-  name?: string | null;
-  email?: string | null;
+  name: string | null;
+  email: string | null;
   isActive: boolean;
   businessId: string;
 };
@@ -149,12 +149,17 @@ const fetchStaffCandidates = async ({
   businessId: string;
   restrictToStaffId?: string;
 }): Promise<StaffCandidate[]> => {
-  const assigned = service.serviceStaff
-    .filter((assignment) =>
-      restrictToStaffId ? assignment.staffId === restrictToStaffId : true,
-    )
+  const assigned: StaffCandidate[] = service.serviceStaff
+    .filter((assignment) => (restrictToStaffId ? assignment.staffId === restrictToStaffId : true))
     .map((assignment) => assignment.staff)
-    .filter((staff): staff is StaffCandidate => Boolean(staff));
+    .filter((staff): staff is NonNullable<typeof staff> => Boolean(staff))
+    .map((staff) => ({
+      id: staff.id,
+      name: staff.name ?? '',
+      email: staff.email ?? null,
+      isActive: staff.isActive,
+      businessId: staff.businessId,
+    }));
 
   const filtered = assigned.filter((staff) => staff.businessId === businessId && staff.isActive);
 

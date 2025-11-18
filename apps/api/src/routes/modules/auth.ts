@@ -352,7 +352,9 @@ authRouter.get('/me', authenticate({ optional: false }), async (req, res, next) 
     const isSuperAdmin = userRecord?.role === 'SUPERADMIN';
     const business =
       !isSuperAdmin && authUser.businessId && userRecord
-        ? userRecord.businesses.find((biz) => biz.id === authUser.businessId) ?? userRecord.businesses[0]
+        ? userRecord.businesses.find(
+            (biz: (typeof userRecord.businesses)[number]) => biz.id === authUser.businessId,
+          ) ?? userRecord.businesses[0]
         : !isSuperAdmin
           ? userRecord?.businesses[0]
           : null;
@@ -434,10 +436,7 @@ authRouter.post('/reset-password', async (req, res, next) => {
       .parse(req.body);
 
     // Use raw SQL to find user by reset token
-    const users = await prisma.$queryRawUnsafe<Array<{
-      id: string;
-      passwordResetTokenExpiresAt: Date | null;
-    }>>(
+    const users = await prisma.$queryRawUnsafe<{ id: string; passwordResetTokenExpiresAt: Date | null }[]>(
       `SELECT id, "passwordResetTokenExpiresAt" FROM "User" WHERE "passwordResetToken" = $1`,
       token,
     );
@@ -486,10 +485,7 @@ authRouter.get('/verify-email', async (req, res, next) => {
     const { token } = z.object({ token: z.string().min(1) }).parse(req.query);
 
     // Use raw SQL to find user by verification token
-    const users = await prisma.$queryRawUnsafe<Array<{
-      id: string;
-      emailVerificationTokenExpiresAt: Date | null;
-    }>>(
+    const users = await prisma.$queryRawUnsafe<{ id: string; emailVerificationTokenExpiresAt: Date | null }[]>(
       `SELECT id, "emailVerificationTokenExpiresAt" FROM "User" WHERE "emailVerificationToken" = $1`,
       token,
     );

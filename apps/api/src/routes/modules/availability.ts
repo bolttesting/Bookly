@@ -22,23 +22,61 @@ const baseBlockSchema = z.object({
   date: z.string().datetime().optional(),
 });
 
-const availabilitySchema = baseBlockSchema
-  .refine((data) => toMinutes(data.endTime) > toMinutes(data.startTime), {
-    message: 'endTime must be greater than startTime',
-    path: ['endTime'],
-  })
-  .refine(
-    (data) => {
-      if (data.isOverride) {
-        return Boolean(data.date);
-      }
-      return !data.date;
-    },
-    {
-      message: 'Overrides require an exact date; weekly templates must omit date',
+const availabilitySchema = baseBlockSchema.superRefine((data, ctx) => {
+  if (toMinutes(data.endTime) <= toMinutes(data.startTime)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'endTime must be greater than startTime',
+      path: ['endTime'],
+    });
+  }
+
+  if (data.isOverride && !data.date) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Overrides require an exact date.',
       path: ['date'],
-    },
-  );
+    });
+  }
+
+  if (!data.isOverride && data.date) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Weekly templates must omit date.',
+      path: ['date'],
+    });
+  }
+});
+
+const availabilityUpdateSchema = baseBlockSchema
+  .partial()
+  .superRefine((data, ctx) => {
+    if (data.startTime && data.endTime && toMinutes(data.endTime) <= toMinutes(data.startTime)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'endTime must be greater than startTime',
+        path: ['endTime'],
+      });
+    }
+
+    if (data.isOverride !== undefined || data.date !== undefined) {
+      const isOverride = data.isOverride ?? false;
+      if (isOverride && !data.date) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Overrides require an exact date.',
+          path: ['date'],
+        });
+      }
+      if (!isOverride && data.date) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Weekly templates must omit date.',
+          path: ['date'],
+        });
+      }
+    }
+  });
 
 availabilityRouter.use(requirePermission(PERMISSIONS.MANAGE_STAFF));
 
@@ -79,6 +117,7 @@ availabilityRouter.post('/', async (req, res, next) => {
       return res.status(400).json({ message: 'Missing business context' });
     }
 
+    const businessId = req.user.businessId;
     const payload = availabilitySchema.parse(req.body);
 
     const staff = await prisma.staffMember.findUnique({
@@ -91,7 +130,7 @@ availabilityRouter.post('/', async (req, res, next) => {
 
     const block = await prisma.availabilityBlock.create({
       data: {
-        businessId: req.user.businessId,
+        businessId,
         staffId: payload.staffId,
         dayOfWeek: payload.dayOfWeek,
         startTime: payload.startTime,
@@ -122,7 +161,7 @@ availabilityRouter.put('/:availabilityId', async (req, res, next) => {
       return res.status(400).json({ message: 'Missing business context' });
     }
 
-    const payload = availabilitySchema.partial().parse(req.body);
+    const payload = availabilityUpdateSchema.parse(req.body);
     const { availabilityId } = req.params;
 
     const existing = await prisma.availabilityBlock.findUnique({

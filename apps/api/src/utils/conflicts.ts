@@ -30,9 +30,13 @@ export const ensureNoConflicts = async ({
 }: ConflictInput) => {
   if (!staffId) return;
 
-  const computedEnd = end ?? addMinutes(start, service.durationMinutes);
-  const bufferedStart = subMinutes(start, service.bufferBeforeMinutes);
-  const bufferedEnd = addMinutes(computedEnd, service.bufferAfterMinutes);
+  const duration = service.durationMinutes ?? 0;
+  const beforeBuffer = service.bufferBeforeMinutes ?? 0;
+  const afterBuffer = service.bufferAfterMinutes ?? 0;
+
+  const computedEnd = end ?? addMinutes(start, duration);
+  const bufferedStart = subMinutes(start, beforeBuffer);
+  const bufferedEnd = addMinutes(computedEnd, afterBuffer);
 
   const conflict = await prisma.appointment.findFirst({
     where: {
