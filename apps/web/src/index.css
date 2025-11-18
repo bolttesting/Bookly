@@ -1,0 +1,145 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+@import 'react-big-calendar/lib/css/react-big-calendar.css';
+@import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
+
+/* Mobile optimizations */
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  button, a {
+    touch-action: manipulation;
+  }
+  
+  input, textarea, select {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  @media (max-width: 640px) {
+    input, textarea, select {
+      font-size: 16px !important;
+    }
+  }
+  
+  /* Ensure select and option text is visible and properly aligned */
+  select {
+    color: #0f172a !important; /* text-neutral-900 */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%230f172a' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 2.5rem !important;
+    line-height: 1.5;
+    height: auto;
+    box-sizing: border-box;
+  }
+  
+  /* Ensure selected value text is visible and centered */
+  select:not([multiple]) {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+  
+  select option {
+    color: #0f172a !important; /* text-neutral-900 */
+    background-color: #ffffff !important;
+    padding: 0.5rem;
+  }
+  
+  select:focus {
+    outline: none;
+  }
+  
+  /* Ensure date and time inputs are visible */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    color: #0f172a; /* text-neutral-900 */
+  }
+  
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0);
+    cursor: pointer;
+  }
+}
+
+:root {
+  --page-bg: #020617;
+  --page-text: #f8fafc;
+  --page-muted: rgba(226, 232, 240, 0.75);
+  --surface-strong: rgba(15, 23, 42, 0.85);
+  --surface-soft: rgba(255, 255, 255, 0.08);
+  --border-soft: rgba(255, 255, 255, 0.1);
+  --accent-primary: #8b5cf6;
+  --accent-secondary: #10b981;
+}
+
+.theme-light {
+  --page-bg: #f8fafc;
+  --page-text: #0f172a;
+  --page-muted: rgba(30, 41, 59, 0.75);
+  --surface-strong: rgba(255, 255, 255, 0.95);
+  --surface-soft: rgba(15, 23, 42, 0.08);
+  --border-soft: rgba(15, 23, 42, 0.12);
+  --accent-primary: #7c3aed;
+  --accent-secondary: #0d9488;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  background: var(--page-bg);
+  color: var(--page-text);
+  transition: background 0.4s ease, color 0.4s ease;
+}
+
+body.theme-light {
+  background: #f8fafc;
+}
+
+.text-theme-primary {
+  color: var(--page-text);
+}
+
+.text-theme-muted {
+  color: var(--page-muted);
+}
+
+.bg-surface-strong {
+  background: var(--surface-strong);
+}
+
+.bg-surface-soft {
+  background: var(--surface-soft);
+}
+
+.border-soft {
+  border-color: var(--border-soft);
+}
+
+.hero-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.rbc-event {
+  border: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+

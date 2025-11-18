@@ -1,0 +1,743 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  STAFF
+  ADMIN
+  SUPERADMIN
+}
+
+enum StaffRole {
+  OWNER
+  TEAM
+  ADMIN
+}
+
+enum OnboardingState {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum AppointmentSource {
+  INTERNAL
+  PUBLIC
+  CLIENT_PORTAL
+}
+
+enum AuditAction {
+  AUTH_LOGIN
+  AUTH_LOGOUT
+  USER_CREATED
+  STAFF_CREATED
+  STAFF_UPDATED
+  STAFF_DELETED
+  SERVICE_CREATED
+  SERVICE_UPDATED
+  SERVICE_DELETED
+  PAYMENT_SETTINGS_UPDATED
+}
+
+enum ClassType {
+  MAT
+  REFORMER
+  TOWER
+  PRIVATE
+}
+
+enum ServiceCapacityType {
+  SINGLE
+  MULTI
+}
+
+enum PaymentConnectionStatus {
+  NOT_CONNECTED
+  PENDING
+  ACTIVE
+}
+
+enum FeatureFlagKey {
+  PILATES_TOOLKIT
+  MEDICAL_COMPLIANCE
+  AGENCY_RETAINER
+  MARKETING_AUTOMATION
+  EMBED_WIDGETS
+}
+
+enum MarketingCampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+}
+
+enum MarketingTriggerType {
+  MANUAL
+  NEW_CUSTOMER
+  CLASS_BOOKED
+}
+
+enum MarketingChannel {
+  EMAIL
+  SMS
+}
+
+enum TestDriveStatus {
+  NONE
+  ACTIVE
+  EXPIRED
+  COMPLETED
+}
+
+enum SubscriptionPlan {
+  STARTER
+  GROWTH
+  BUSINESS
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  SUSPENDED
+}
+
+enum NotificationType {
+  APPOINTMENT_CREATED
+  APPOINTMENT_CANCELLED
+  APPOINTMENT_RESCHEDULED
+  APPOINTMENT_REMINDER
+  WAITLIST_PROMOTED
+  PAYMENT_RECEIVED
+  CUSTOMER_MESSAGE
+  SYSTEM_ALERT
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+enum CalendarProvider {
+  GOOGLE
+  OUTLOOK
+}
+
+enum CalendarConnectionStatus {
+  PENDING
+  ACTIVE
+  ERROR
+  DISCONNECTED
+}
+
+model User {
+  id                    String       @id @default(cuid())
+  email                 String       @unique
+  passwordHash          String
+  firstName             String?
+  lastName              String?
+  role                  UserRole     @default(OWNER)
+  emailVerified         Boolean      @default(false)
+  emailVerificationToken String?     @unique
+  emailVerificationTokenExpiresAt DateTime?
+  passwordResetToken    String?      @unique
+  passwordResetTokenExpiresAt DateTime?
+  businesses            Business[]   @relation("BusinessOwner")
+  staffProfiles         StaffMember[]
+  sessions              Session[]
+  auditLogs             AuditLog[]
+  notifications         Notification[]
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+}
+
+model Business {
+  id                String           @id @default(cuid())
+  name              String
+  industry          String?
+  timezone          String           @default("Asia/Dubai")
+  currency          String           @default("AED")
+  contactEmail      String?
+  contactPhone      String?
+  onboardingState   OnboardingState  @default(NOT_STARTED)
+  onboardingContext Json?
+  paymentConnectionStatus PaymentConnectionStatus @default(NOT_CONNECTED)
+  stripeAccountId   String?
+  stripeChargesEnabled Boolean     @default(false)
+  stripePayoutsEnabled Boolean     @default(false)
+  stripeOnboardingCompletedAt DateTime?
+  testDriveStatus    TestDriveStatus @default(NONE)
+  testDriveActivatedAt DateTime?
+  testDriveEndsAt    DateTime?
+  subscriptionPlan   SubscriptionPlan?
+  subscriptionStatus SubscriptionStatus?
+  stripeCustomerId   String?
+  stripeSubscriptionId String?
+  subscriptionCurrentPeriodStart DateTime?
+  subscriptionCurrentPeriodEnd DateTime?
+  subscriptionCancelAtPeriodEnd Boolean @default(false)
+  subscriptionCanceledAt DateTime?
+  usageStaffCount    Int @default(0)
+  usageServiceCount  Int @default(0)
+  usageBookingPageCount Int @default(0)
+  usageAppointmentCount Int @default(0)
+  lastBillingSyncAt  DateTime?
+  dunningAttempts   Int @default(0)
+  lastDunningSentAt DateTime?
+  suspendedAt       DateTime?
+  suspensionReason  String?
+  owner             User             @relation("BusinessOwner", fields: [ownerId], references: [id])
+  ownerId           String
+  staffMembers      StaffMember[]
+  services          Service[]
+  customers         Customer[]
+  bookingPages      BookingPage[]
+  classTemplates    ClassTemplate[]
+  classSeries       ClassSeries[]
+  classOccurrences  ClassOccurrence[]
+  resources         Resource[]
+  resourceReservations ResourceReservation[]
+  packages          Package[]
+  customerPackages  CustomerPackage[]
+  waitlistEntries   WaitlistEntry[]
+  portalTokens      CustomerPortalToken[]
+  appointments      Appointment[]
+  availability      AvailabilityBlock[]
+  serviceAssignments ServiceStaff[]
+  featureFlags      BusinessFeature[]
+  marketingCampaigns MarketingCampaign[]
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+  calendarConnections CalendarConnection[]
+  embedEvents       EmbedEvent[]
+  testDriveFeedback TestDriveFeedback[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+}
+
+model StaffMember {
+  id          String     @id @default(cuid())
+  business    Business   @relation(fields: [businessId], references: [id])
+  businessId  String
+  user        User?      @relation(fields: [userId], references: [id])
+  userId      String?
+  name        String
+  email       String?
+  role        StaffRole  @default(TEAM)
+  permissions String[]   @default([])
+  isActive    Boolean    @default(true)
+  appointments Appointment[]
+  availability AvailabilityBlock[]
+  classTemplates ClassTemplate[] @relation("TemplateInstructor")
+  classOccurrences ClassOccurrence[] @relation("OccurrenceInstructor")
+  serviceAssignments ServiceStaff[]
+  notifications Notification[]
+  calendarConnections CalendarConnection[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Service {
+  id                   String    @id @default(cuid())
+  business             Business  @relation(fields: [businessId], references: [id])
+  businessId           String
+  name                 String
+  description          String?
+  durationMinutes      Int
+  price                Decimal   @db.Decimal(10, 2)
+  color                String?
+  bufferBeforeMinutes  Int       @default(0)
+  bufferAfterMinutes   Int       @default(0)
+  isActive             Boolean   @default(true)
+  capacityType         ServiceCapacityType @default(SINGLE)
+  maxClientsPerSlot    Int       @default(1)
+  allowAnyStaff        Boolean   @default(true)
+  appointments         Appointment[]
+  serviceStaff         ServiceStaff[]
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+model ServiceStaff {
+  id          String       @id @default(cuid())
+  business    Business     @relation(fields: [businessId], references: [id])
+  businessId  String
+  service     Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceId   String
+  staff       StaffMember  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId     String
+  isPrimary   Boolean      @default(false)
+  displayOrder Int         @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([serviceId, staffId])
+  @@index([businessId, staffId])
+}
+
+model Customer {
+  id                String    @id @default(cuid())
+  business          Business  @relation(fields: [businessId], references: [id])
+  businessId        String
+  firstName         String
+  lastName          String
+  email             String?
+  phone             String?
+  notes             String?
+  marketingConsent  Boolean   @default(false)
+  appointments      Appointment[]
+  customerPackages  CustomerPackage[]
+  waitlistEntries   WaitlistEntry[]
+  portalTokens      CustomerPortalToken[]
+  marketingEvents   MarketingEvent[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([businessId, email])
+}
+
+model BookingPage {
+  id         String    @id @default(cuid())
+  business   Business  @relation(fields: [businessId], references: [id])
+  businessId String
+  name       String
+  slug       String    @unique
+  settings   Json?
+  isActive   Boolean   @default(true)
+  appointments Appointment[]
+  embedEvents EmbedEvent[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Appointment {
+  id             String             @id @default(cuid())
+  business       Business           @relation(fields: [businessId], references: [id])
+  businessId     String
+  service        Service            @relation(fields: [serviceId], references: [id])
+  serviceId      String
+  staff          StaffMember?       @relation(fields: [staffId], references: [id])
+  staffId        String?
+  customer       Customer?          @relation(fields: [customerId], references: [id])
+  customerId     String?
+  bookingPage    BookingPage?       @relation(fields: [bookingPageId], references: [id])
+  bookingPageId  String?
+  startTime      DateTime
+  endTime        DateTime
+  status         AppointmentStatus  @default(PENDING)
+  source         AppointmentSource  @default(INTERNAL)
+  notes          String?
+  customerNotes  String?
+  metadata       Json?
+  paymentStatus  String             @default("UNPAID")
+  stripePaymentIntentId String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  activities     AppointmentActivity[]
+  resourceReservations ResourceReservation[]
+  externalEvents ExternalCalendarEvent[]
+
+  @@index([businessId, startTime])
+  @@index([staffId, startTime])
+}
+
+model AppointmentActivity {
+  id             String            @id @default(cuid())
+  appointment    Appointment       @relation(fields: [appointmentId], references: [id])
+  appointmentId  String
+  status         AppointmentStatus
+  message        String?
+  createdByUser  String?
+  createdAt      DateTime          @default(now())
+}
+
+model AvailabilityBlock {
+  id          String      @id @default(cuid())
+  business    Business    @relation(fields: [businessId], references: [id])
+  businessId  String
+  staff       StaffMember @relation(fields: [staffId], references: [id])
+  staffId     String
+  dayOfWeek   Int
+  startTime   String
+  endTime     String
+  isOverride  Boolean     @default(false)
+  date        DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model ClassTemplate {
+  id                String        @id @default(cuid())
+  business          Business      @relation(fields: [businessId], references: [id])
+  businessId        String
+  name              String
+  type              ClassType
+  durationMinutes   Int
+  defaultCapacity   Int
+  description       String?
+  color             String?
+  defaultInstructor StaffMember?  @relation("TemplateInstructor", fields: [defaultInstructorId], references: [id])
+  defaultInstructorId String?
+  settings          Json?
+  series            ClassSeries[]
+  occurrences       ClassOccurrence[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+model ClassSeries {
+  id          String         @id @default(cuid())
+  business    Business       @relation(fields: [businessId], references: [id])
+  businessId  String
+  template    ClassTemplate  @relation(fields: [templateId], references: [id])
+  templateId  String
+  recurrenceRule String
+  startDate   DateTime
+  endDate     DateTime?
+  timezone    String         @default("Asia/Dubai")
+  occurrences ClassOccurrence[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model ClassOccurrence {
+  id           String        @id @default(cuid())
+  business     Business      @relation(fields: [businessId], references: [id])
+  businessId   String
+  template     ClassTemplate? @relation(fields: [templateId], references: [id])
+  templateId   String?
+  series       ClassSeries?   @relation(fields: [seriesId], references: [id])
+  seriesId     String?
+  instructor   StaffMember?   @relation("OccurrenceInstructor", fields: [instructorId], references: [id])
+  instructorId String?
+  startTime    DateTime
+  endTime      DateTime
+  capacity     Int
+  bookedCount  Int            @default(0)
+  waitlistCount Int           @default(0)
+  status       String         @default("SCHEDULED")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  resourceReservations ResourceReservation[]
+  waitlistEntries WaitlistEntry[]
+
+  @@index([businessId, startTime])
+}
+
+model Resource {
+  id          String   @id @default(cuid())
+  business    Business @relation(fields: [businessId], references: [id])
+  businessId  String
+  name        String
+  type        String
+  quantity    Int      @default(1)
+  color       String?
+  metadata    Json?
+  reservations ResourceReservation[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ResourceReservation {
+  id                String         @id @default(cuid())
+  business          Business       @relation(fields: [businessId], references: [id])
+  businessId        String
+  resource          Resource       @relation(fields: [resourceId], references: [id])
+  resourceId        String
+  appointment       Appointment?   @relation(fields: [appointmentId], references: [id])
+  appointmentId     String?
+  classOccurrence   ClassOccurrence? @relation(fields: [classOccurrenceId], references: [id])
+  classOccurrenceId String?
+  quantity          Int            @default(1)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([businessId, resourceId])
+}
+
+model Package {
+  id           String   @id @default(cuid())
+  business     Business @relation(fields: [businessId], references: [id])
+  businessId   String
+  name         String
+  description  String?
+  credits      Int
+  price        Decimal? @db.Decimal(10, 2)
+  expiryDays   Int?
+  isActive     Boolean  @default(true)
+  settings     Json?
+  customerPackages CustomerPackage[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model CustomerPackage {
+  id           String   @id @default(cuid())
+  business     Business @relation(fields: [businessId], references: [id])
+  businessId   String
+  customer     Customer @relation(fields: [customerId], references: [id])
+  customerId   String
+  package      Package  @relation(fields: [packageId], references: [id])
+  packageId    String
+  remainingCredits Int
+  status       String   @default("ACTIVE")
+  expiryDate   DateTime?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([businessId, customerId])
+}
+
+model WaitlistEntry {
+  id                String          @id @default(cuid())
+  business          Business        @relation(fields: [businessId], references: [id])
+  businessId        String
+  classOccurrence   ClassOccurrence @relation(fields: [classOccurrenceId], references: [id])
+  classOccurrenceId String
+  customer          Customer        @relation(fields: [customerId], references: [id])
+  customerId        String
+  position          Int
+  status            String          @default("PENDING")
+  createdAt         DateTime        @default(now())
+
+  @@index([businessId, classOccurrenceId])
+}
+
+model CustomerPortalToken {
+  id             String    @id @default(cuid())
+  business       Business  @relation(fields: [businessId], references: [id])
+  businessId     String
+  customer       Customer  @relation(fields: [customerId], references: [id])
+  customerId     String
+  tokenHash      String
+  expiresAt      DateTime
+  used           Boolean   @default(false)
+  userAgent      String?
+  createdAt      DateTime  @default(now())
+}
+
+model BusinessFeature {
+  id         String         @id @default(cuid())
+  business   Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId String
+  key        FeatureFlagKey
+  enabled    Boolean        @default(false)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@unique([businessId, key])
+}
+
+model MarketingCampaign {
+  id          String                   @id @default(cuid())
+  business    Business                 @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId  String
+  name        String
+  description String?
+  status      MarketingCampaignStatus  @default(DRAFT)
+  triggerType MarketingTriggerType     @default(MANUAL)
+  triggerConfig Json?
+  steps       MarketingStep[]
+  events      MarketingEvent[]
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  @@index([businessId, status])
+}
+
+model MarketingStep {
+  id          String           @id @default(cuid())
+  campaign    MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId  String
+  delayMinutes Int              @default(0)
+  channel     MarketingChannel  @default(EMAIL)
+  subject     String?
+  body        String
+  stepOrder   Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([campaignId, stepOrder])
+}
+
+model MarketingEvent {
+  id           String            @id @default(cuid())
+  campaign     MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId   String
+  customer     Customer?         @relation(fields: [customerId], references: [id])
+  customerId   String?
+  channel      MarketingChannel  @default(EMAIL)
+  subject      String?
+  body         String
+  status       String            @default("QUEUED")
+  scheduledAt  DateTime
+  processedAt  DateTime?
+  metadata     Json?
+  createdAt    DateTime          @default(now())
+
+  @@index([campaignId, status])
+  @@index([customerId])
+}
+
+model Session {
+  id               String   @id @default(cuid())
+  user             User     @relation(fields: [userId], references: [id])
+  userId           String
+  refreshTokenHash String
+  userAgent        String?
+  ipAddress        String?
+  createdAt        DateTime @default(now())
+  lastUsedAt       DateTime @updatedAt
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  business   Business?   @relation(fields: [businessId], references: [id])
+  businessId String?
+  user       User?       @relation(fields: [userId], references: [id])
+  userId     String?
+  action     AuditAction
+  metadata   Json?
+  createdAt  DateTime    @default(now())
+}
+
+model Notification {
+  id         String            @id @default(cuid())
+  business   Business          @relation(fields: [businessId], references: [id])
+  businessId String
+  user       User?             @relation(fields: [userId], references: [id])
+  userId     String?
+  staff      StaffMember?      @relation(fields: [staffId], references: [id])
+  staffId    String?
+  type       NotificationType
+  title      String
+  message    String
+  status     NotificationStatus @default(UNREAD)
+  link       String?
+  metadata   Json?
+  readAt     DateTime?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@index([businessId, userId, status])
+  @@index([businessId, status, createdAt])
+  @@index([staffId, status])
+}
+
+model CalendarConnection {
+  id              String                   @id @default(cuid())
+  business        Business                 @relation(fields: [businessId], references: [id])
+  businessId      String
+  staff           StaffMember?             @relation(fields: [staffId], references: [id])
+  staffId         String?
+  provider        CalendarProvider
+  status          CalendarConnectionStatus @default(PENDING)
+  calendarId      String?                  // External calendar ID
+  calendarName    String?
+  accessToken     String                   // Encrypted OAuth access token
+  refreshToken    String?                  // Encrypted OAuth refresh token
+  tokenExpiresAt  DateTime?
+  syncEnabled     Boolean                  @default(true)
+  syncDirection   String                   @default("BIDIRECTIONAL") // BIDIRECTIONAL, BOOKLY_TO_CALENDAR, CALENDAR_TO_BOOKLY
+  lastSyncAt      DateTime?
+  lastSyncError   String?
+  watchChannelId  String?
+  watchResourceId String?
+  watchChannelToken String?
+  webhookExpiresAt DateTime?
+  lastWebhookAt   DateTime?
+  googleSyncToken String?
+  lastGoogleSyncAt DateTime?
+  outlookDeltaToken String?
+  lastOutlookSyncAt DateTime?
+  events          ExternalCalendarEvent[]
+  metadata        Json?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  @@index([businessId, staffId])
+  @@index([businessId, provider, status])
+  @@index([watchChannelId, watchResourceId])
+}
+
+model ExternalCalendarEvent {
+  id             String             @id @default(cuid())
+  connection     CalendarConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  connectionId   String
+  provider       CalendarProvider
+  externalEventId String
+  summary        String?
+  description    String?
+  status         String?
+  startTime      DateTime?
+  endTime        DateTime?
+  rawPayload     Json?
+  appointment    Appointment?       @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  appointmentId  String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@unique([connectionId, externalEventId])
+  @@index([appointmentId])
+}
+
+enum EmbedEventType {
+  VIEW
+  SERVICE_SELECTED
+  STAFF_SELECTED
+  TIME_SELECTED
+  CUSTOMER_FORM_STARTED
+  CUSTOMER_FORM_COMPLETED
+  PAYMENT_STARTED
+  PAYMENT_COMPLETED
+  BOOKING_COMPLETED
+  DROPOFF
+}
+
+model EmbedEvent {
+  id            String         @id @default(cuid())
+  business      Business       @relation(fields: [businessId], references: [id])
+  businessId    String
+  bookingPage   BookingPage?   @relation(fields: [bookingPageId], references: [id])
+  bookingPageId String?
+  eventType     EmbedEventType
+  sessionId     String         // Client-side session identifier
+  referrer      String?        // Where the embed is hosted
+  userAgent     String?
+  ipAddress     String?
+  metadata      Json?          // Additional context (serviceId, staffId, step, etc.)
+  createdAt     DateTime       @default(now())
+
+  @@index([businessId, bookingPageId, createdAt])
+  @@index([businessId, eventType, createdAt])
+  @@index([sessionId])
+}
+
+model TestDriveFeedback {
+  id         String   @id @default(cuid())
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId String
+  feedback   String
+  status     String   // COMPLETED, EXPIRED, etc.
+  createdAt  DateTime @default(now())
+
+  @@index([businessId, createdAt])
+}
+
