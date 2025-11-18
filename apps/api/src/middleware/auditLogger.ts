@@ -1,10 +1,9 @@
-import type { Prisma } from '@prisma/client';
 import type { Request } from 'express';
 
 import { prisma } from '../config/prisma.js';
 import type { AuditActionValue } from '../constants/enums.js';
 
-type AuditMetadata = Prisma.InputJsonValue;
+type AuditMetadata = any;
 
 type AuditLogInput = {
   action: AuditActionValue;

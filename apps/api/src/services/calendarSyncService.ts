@@ -2,7 +2,8 @@ import { google, calendar_v3 } from 'googleapis';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { prisma } from '../config/prisma.js';
 import { env } from '../config/env.js';
-import type { Appointment } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
+type Appointment = Prisma.AppointmentGetPayload<{}>;
 import { logger } from '../utils/logger.js';
 import { publishAppointmentEvent } from '../lib/appointmentEvents.js';
 

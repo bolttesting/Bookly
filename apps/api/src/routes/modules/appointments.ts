@@ -64,7 +64,7 @@ appointmentsRouter.get('/', async (req, res, next) => {
 
     const { rangeStart, rangeEnd } = req.query;
 
-    const where: Prisma.AppointmentWhereInput = {
+    const where: any = {
       businessId: req.user.businessId,
     };
 

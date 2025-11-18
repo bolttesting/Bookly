@@ -81,9 +81,9 @@ onboardingRouter.post('/step', async (req, res, next) => {
     (nextContext as Record<string, unknown>)[`step${payload.step}`] = payload.data;
     nextContext.step = payload.step;
 
-    const updates: Prisma.BusinessUpdateInput = {
+    const updates: any = {
       onboardingState: payload.complete ? 'COMPLETED' : 'IN_PROGRESS',
-      onboardingContext: nextContext as Prisma.InputJsonValue,
+      onboardingContext: nextContext as any,
     };
 
     if (payload.step === 1 && payload.data) {
@@ -132,7 +132,7 @@ onboardingRouter.post('/step', async (req, res, next) => {
               businessId,
               name: data.data.serviceName,
               durationMinutes: data.data.duration ?? 60,
-              price: new Prisma.Decimal(data.data.price ?? 250),
+              price: data.data.price ?? 250,
               bufferBeforeMinutes: 0,
               bufferAfterMinutes: 0,
               isActive: true,

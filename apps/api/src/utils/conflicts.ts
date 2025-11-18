@@ -7,10 +7,11 @@ import { ACTIVE_APPOINTMENT_STATUSES } from '../constants/enums.js';
 type ConflictInput = {
   businessId: string;
   staffId?: string | null;
-  service: Pick<
-    Prisma.ServiceUncheckedCreateInput,
-    'bufferBeforeMinutes' | 'bufferAfterMinutes' | 'durationMinutes'
-  >;
+  service: {
+    bufferBeforeMinutes: number;
+    bufferAfterMinutes: number;
+    durationMinutes: number;
+  };
   start: Date;
   end?: Date;
   excludeAppointmentId?: string;

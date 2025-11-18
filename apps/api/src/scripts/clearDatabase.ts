@@ -9,13 +9,13 @@ async function clearDatabase() {
     console.log('🗑️  Clearing all data from database...');
 
     // Get all table names that exist in the database
-    const tables = await prisma.$queryRawUnsafe<{ tablename: string }[]>(`
+    const tables = (await prisma.$queryRawUnsafe(`
       SELECT tablename 
       FROM pg_tables 
       WHERE schemaname = 'public' 
       AND tablename NOT LIKE '_prisma%'
       ORDER BY tablename;
-    `);
+    `)) as Array<{ tablename: string }>;
 
     if (tables.length === 0) {
       console.log('ℹ️  No tables found to clear.');
@@ -36,15 +36,15 @@ async function clearDatabase() {
     // If truncate fails, try deleting from each table individually
     try {
       console.log('🔄 Trying alternative method...');
-      const tables = await prisma.$queryRawUnsafe<{ tablename: string }[]>(`
+      const tables = (await prisma.$queryRawUnsafe(`
         SELECT tablename 
         FROM pg_tables 
         WHERE schemaname = 'public' 
         AND tablename NOT LIKE '_prisma%'
         ORDER BY tablename;
-      `);
+      `)) as Array<{ tablename: string }>;
 
-      for (const table of tables) {
+      for (const table of tables as Array<{ tablename: string }>) {
         try {
           await prisma.$executeRawUnsafe(`DELETE FROM "${table.tablename}";`);
           console.log(`  ✓ Cleared ${table.tablename}`);

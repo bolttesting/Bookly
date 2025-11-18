@@ -27,11 +27,9 @@ const serviceWithStaffInclude = {
       },
     },
   },
-} satisfies Prisma.ServiceInclude;
+} as any;
 
-export type ServiceWithMeta = Prisma.ServiceGetPayload<{
-  include: typeof serviceWithStaffInclude;
-}>;
+export type ServiceWithMeta = any;
 
 export type ServiceWithCapacity = ServiceWithMeta & {
   capacityType: 'SINGLE' | 'MULTI';
@@ -82,15 +80,15 @@ export const isStaffAvailableDuringInterval = async ({
 }) => {
   const blocks = await getAvailabilityBlocks({ businessId, staffId, start });
 
-  const overrides = blocks.filter((block) => block.isOverride);
-  const relevantBlocks = overrides.length ? overrides : blocks.filter((block) => !block.isOverride);
+  const overrides = blocks.filter((block: any) => block.isOverride);
+  const relevantBlocks = overrides.length ? overrides : blocks.filter((block: any) => !block.isOverride);
 
   if (!relevantBlocks.length) return true;
 
   const startMinutes = toMinutes(start);
   const endMinutes = toMinutes(end);
 
-  return relevantBlocks.some((block) => {
+  return relevantBlocks.some((block: any) => {
     const blockStart = parseTimeString(block.startTime);
     const blockEnd = parseTimeString(block.endTime);
     return startMinutes >= blockStart && endMinutes <= blockEnd;
@@ -150,10 +148,10 @@ const fetchStaffCandidates = async ({
   restrictToStaffId?: string;
 }): Promise<StaffCandidate[]> => {
   const assigned: StaffCandidate[] = service.serviceStaff
-    .filter((assignment) => (restrictToStaffId ? assignment.staffId === restrictToStaffId : true))
-    .map((assignment) => assignment.staff)
-    .filter((staff): staff is NonNullable<typeof staff> => Boolean(staff))
-    .map((staff) => ({
+    .filter((assignment: any) => (restrictToStaffId ? assignment.staffId === restrictToStaffId : true))
+    .map((assignment: any) => assignment.staff)
+    .filter((staff: any): staff is NonNullable<typeof staff> => Boolean(staff))
+    .map((staff: any) => ({
       id: staff.id,
       name: staff.name ?? '',
       email: staff.email ?? null,

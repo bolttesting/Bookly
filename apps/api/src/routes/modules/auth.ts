@@ -436,10 +436,10 @@ authRouter.post('/reset-password', async (req, res, next) => {
       .parse(req.body);
 
     // Use raw SQL to find user by reset token
-    const users = await prisma.$queryRawUnsafe<{ id: string; passwordResetTokenExpiresAt: Date | null }[]>(
+    const users = (await prisma.$queryRawUnsafe(
       `SELECT id, "passwordResetTokenExpiresAt" FROM "User" WHERE "passwordResetToken" = $1`,
       token,
-    );
+    )) as Array<{ id: string; passwordResetTokenExpiresAt: Date | null }>;
 
     const user = users[0];
 
@@ -485,10 +485,10 @@ authRouter.get('/verify-email', async (req, res, next) => {
     const { token } = z.object({ token: z.string().min(1) }).parse(req.query);
 
     // Use raw SQL to find user by verification token
-    const users = await prisma.$queryRawUnsafe<{ id: string; emailVerificationTokenExpiresAt: Date | null }[]>(
+    const users = (await prisma.$queryRawUnsafe(
       `SELECT id, "emailVerificationTokenExpiresAt" FROM "User" WHERE "emailVerificationToken" = $1`,
       token,
-    );
+    )) as Array<{ id: string; emailVerificationTokenExpiresAt: Date | null }>;
 
     const user = users[0];
 

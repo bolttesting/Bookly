@@ -66,7 +66,7 @@ const serviceInclude = {
     },
     orderBy: { displayOrder: 'asc' as const },
   },
-} satisfies Prisma.ServiceInclude;
+} as any;
 
 servicesRouter.get('/', async (req, res, next) => {
   try {
@@ -100,7 +100,7 @@ servicesRouter.post('/', async (req, res, next) => {
     const service = await prisma.service.create({
       data: {
         ...serviceData,
-        price: new Prisma.Decimal(serviceData.price),
+        price: serviceData.price,
         businessId,
       },
     });
@@ -116,7 +116,7 @@ servicesRouter.post('/', async (req, res, next) => {
 
       if (validStaff.length) {
         await prisma.serviceStaff.createMany({
-          data: validStaff.map((staff, index) => ({
+          data: validStaff.map((staff: any, index: number) => ({
             businessId,
             serviceId: service.id,
             staffId: staff.id,
@@ -159,7 +159,7 @@ servicesRouter.put('/:serviceId', async (req, res, next) => {
       where: { id: serviceId },
       data: {
         ...serviceData,
-        price: serviceData.price !== undefined ? new Prisma.Decimal(serviceData.price) : undefined,
+        price: serviceData.price !== undefined ? serviceData.price : undefined,
       },
     });
 
@@ -172,7 +172,7 @@ servicesRouter.put('/:serviceId', async (req, res, next) => {
         select: { id: true },
       });
 
-      const validIds = new Set(validStaff.map((s) => s.id));
+      const validIds = new Set(validStaff.map((s: any) => s.id));
 
       await prisma.serviceStaff.deleteMany({
         where: {
@@ -185,11 +185,11 @@ servicesRouter.put('/:serviceId', async (req, res, next) => {
         where: { serviceId },
         select: { staffId: true },
       });
-      const existingIds = new Set(existingAssignments.map((a) => a.staffId));
+      const existingIds = new Set(existingAssignments.map((a: any) => a.staffId));
 
       const newAssignments = staffIds
         .filter((id) => validIds.has(id) && !existingIds.has(id))
-        .map((id, index) => ({
+        .map((id: string, index: number) => ({
           businessId,
           serviceId,
           staffId: id,

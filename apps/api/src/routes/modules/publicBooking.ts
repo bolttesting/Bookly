@@ -23,13 +23,9 @@ import {
 
 const publicBookingRouter = Router();
 
-type BookingPageWithServices = Prisma.BookingPageGetPayload<{
-  include: { business: { include: { services: true } } };
-}>;
+type BookingPageWithServices = any;
 
-type BookingPageWithBusiness = Prisma.BookingPageGetPayload<{
-  include: { business: true };
-}>;
+type BookingPageWithBusiness = any;
 
 const customerInfoSchema = z.object({
   firstName: z.string().min(1),
@@ -524,7 +520,7 @@ publicBookingRouter.post('/:slug/book', async (req, res, next) => {
       customerNotes: payload.customer.notes,
       paymentStatus,
       stripePaymentIntentId: stripePaymentIntentId ?? undefined,
-    } as Prisma.AppointmentUncheckedCreateInput;
+    } as any;
 
     const appointment = await prisma.appointment.create({
       data: appointmentData,
@@ -650,15 +646,15 @@ const computeSlots = async ({ businessId, service, staff, date }: SlotInput) => 
   const slots: Array<{ staffId: string; startTime: string; endTime: string }> = [];
 
   for (const member of staff) {
-    const blocks = availability.filter((block) => block.staffId === member.id);
-    const hasOverride = blocks.some((block) => block.isOverride);
+    const blocks = availability.filter((block: any) => block.staffId === member.id);
+    const hasOverride = blocks.some((block: any) => block.isOverride);
     const blockList: BlockShape[] = blocks.length
       ? blocks
-          .filter((block) => (hasOverride ? block.isOverride : !block.isOverride))
-          .map((block) => ({ startTime: block.startTime, endTime: block.endTime }))
+          .filter((block: any) => (hasOverride ? block.isOverride : !block.isOverride))
+          .map((block: any) => ({ startTime: block.startTime, endTime: block.endTime }))
       : [{ startTime: '09:00', endTime: '17:00' }];
 
-    blockList.forEach((block) => {
+    blockList.forEach((block: BlockShape) => {
       const startParts = block.startTime.split(':').map(Number);
       const endParts = block.endTime.split(':').map(Number);
       const blockStart = set(target, {
@@ -679,7 +675,7 @@ const computeSlots = async ({ businessId, service, staff, date }: SlotInput) => 
         const slotEnd = new Date(slotStart.getTime() + service.durationMinutes * 60000);
 
         const staffOverlap = appointments.some(
-          (appt) =>
+          (appt: any) =>
             appt.staffId === member.id &&
             appt.startTime < slotEnd &&
             appt.endTime > slotStart &&
@@ -691,7 +687,7 @@ const computeSlots = async ({ businessId, service, staff, date }: SlotInput) => 
         }
 
         const serviceOverlap = appointments.filter(
-          (appt) => appt.serviceId === service.id && appt.startTime < slotEnd && appt.endTime > slotStart,
+          (appt: any) => appt.serviceId === service.id && appt.startTime < slotEnd && appt.endTime > slotStart,
         ).length;
 
         if (serviceOverlap < service.maxClientsPerSlot) {

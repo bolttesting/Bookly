@@ -35,7 +35,7 @@ const staffInclude = {
       },
     },
   },
-} satisfies Prisma.StaffMemberInclude;
+} as any;
 
 const permissionValues = Object.values(PERMISSIONS);
 
